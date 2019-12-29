@@ -129,3 +129,4 @@ ADD UNIQUE INDEX uni_name （name） # 添加唯一索引，并创建索引
 ADD CONSTRAINT uni_name UNIQUE (name) # 添加唯一索引，不创建唯一索引（name列没有索引，但具有唯一性保证）
 ```
 
+未完待续....
