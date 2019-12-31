@@ -1,5 +1,3 @@
-
-
 ### 关系模型
 
 ##### 主键
@@ -323,3 +321,306 @@ SELECT class_id, gender,COUNT(*) num FROM students GROUP BY class_id, gender;
 | 2        | M      | 2    |
 | 3        | F      | 2    |
 | 3        | M      | 1    |
+
+
+
+##### 多表查询
+
+同时查询多张表
+
+```
+SELECT * FROM students, classes; # 同时查询students， classes
+```
+
+多表并投影，重新命名列
+
+```
+SELCET
+
+	students.id sid,
+
+	classes.name cname
+
+FROM students, classes;
+```
+
+| sid  | cname |
+| :--- | :---- |
+| 1    | 一班  |
+| 1    | 二班  |
+
+多表并投影，重新命名列(简洁版)
+
+```
+SELECT
+	s.id sid,
+	c.name cname
+FROM students s, classes c;
+```
+
+多表查询并添加WHERE条件
+
+```
+SELECT
+	s.id sid,
+	s.name,
+	s.gender,
+	s.score
+	c.id cid,
+	c.name cname
+FROM students s, classes c
+WHERE s.gender = 'M' AND c.id = 1;
+```
+
+| sid  | name | gender | score | cid  | cname |
+| :--- | :--- | :----- | :---- | :--- | :---- |
+| 1    | 小明 | M      | 90    | 1    | 一班  |
+| 3    | 小军 | M      | 88    | 1    | 一班  |
+| 6    | 小兵 | M      | 55    | 1    | 一班  |
+
+##### 连接查询
+
+内连接(INNER JOIN)
+
+[^]: INNER JOIN只返回同时存在于两张表的行数据，由于`students`表的`class_id`包含1，2，3，`classes`表的`id`包含1，2，3，4，所以，INNER JOIN根据条件`s.class_id = c.id`返回的结果集仅包含1，2，3。
+
+```
+SELECT s.id, s.name, s.class_id, c.name class_name class_name, s.gender, s.score
+FROM students s # 确定主表
+INNER JOIN classes c # 确定需要连接的表
+ON s.class_id = c.id; # 连接条件 表示s.class_id列与c.id列相同的行连接
+```
+
+| id   | name | class_id | class_name | gender | score |
+| :--- | :--- | :------- | :--------- | :----- | :---- |
+| 1    | 小明 | 1        | 一班       | M      | 90    |
+| 2    | 小红 | 1        | 一班       | F      | 95    |
+| 3    | 小军 | 1        | 一班       | M      | 88    |
+| 4    | 小米 | 1        | 一班       | F      | 73    |
+| 5    | 小白 | 2        | 二班       | F      | 81    |
+
+外连接(RIGHT OUTER JOIN)
+
+[^]: 有RIGHT OUTER JOIN，就有LEFT OUTER JOIN，以及FULL OUTER JOIN
+[^]: RIGHT OUTER JOIN返回右表都存在的行。如果某一行仅在右表存在，那么结果集就会以`NULL`填充剩下的字段。
+
+```
+SELECT s.id, s.name, s.class_id, c.name class_name, s.gender, s.score
+FROM students s # 确定主表
+RIGHT OUTER JOIN classes c # 确定需要连接的表
+ON s.class_id = c.id;
+```
+
+| 9    | 小王 | 3    | 三班 | M    | 89   |
+| ---- | ---- | ---- | ---- | ---- | ---- |
+| 10   | 小丽 | 3    | 三班 | F    | 88   |
+| NULL | NULL | NULL | 四班 | NULL | NULL |
+
+[^]: LEFT OUTER JOIN则返回左表都存在的行。如果我们给students表增加一行，并添加class_id=5，由于classes表并不存在id=5的行，所以，LEFT OUTER JOIN的结果会增加一行，对应的`class_name`是`NULL`：
+
+```
+SELECT s.id, s.name, s.class_id, c.name class_name, s.gender, s.score
+FROM students s
+LEFT OUTER JOIN classes c
+ON s.class_id = c.id;
+```
+
+| 9    | 小王 | 3    | 三班 | M    | 89   |
+| ---- | ---- | ---- | ---- | ---- | ---- |
+| 10   | 小丽 | 3    | 三班 | F    | 88   |
+| 11   | 新生 | 5    | NULL | M    | 88   |
+
+FULL OUTER JOIN，它会把两张表的所有记录全部选择出来，并且，自动把对方不存在的列填充为NULL
+
+```
+SELECT s.id, s.name, s.class_id, c.name class_name, s.gender, s.score
+FROM students s
+FULL OUTER JOIN classes c
+ON s.class_id = c.id;
+```
+
+| 10   | 小丽 | 3    | 三班 | F    | 88   |
+| ---- | ---- | ---- | ---- | ---- | ---- |
+| 11   | 新生 | 5    | NULL | M    | 88   |
+| NULL | NULL | NULL | 四班 | NULL | NULL |
+
+假设查询语句是
+
+SELECT ... FROM tableA ？？？ JOIN tableB ON tableA .column1 = tableB.column2;
+
+我们把tableA看作左表，把tableB看成右表，那么INNER JOIN是选出两张表都存在的记录：
+
+![inner-join](https://www.liaoxuefeng.com/files/attachments/1246892164662976/l)
+
+LEFT OUTER JOIN是选出左表存在的记录：
+
+![left-outer-join](https://www.liaoxuefeng.com/files/attachments/1246893588481376/l)
+
+RIGHT OUTER JOIN是选出右表存在的记录：
+
+![right-outer-join](https://www.liaoxuefeng.com/files/attachments/1246893609222688/l)
+
+FULL OUTER JOIN则是选出左右表都存在的记录：
+
+![full-outer-join](https://www.liaoxuefeng.com/files/attachments/1246893632359424/l)
+
+##### 小结
+
+[^]: JOIN查询需要先确定主表，然后把另一个表的数据“附加”到结果集上；INNER JOIN是最常用的一种JOIN查询，它的语法是`SELECT ... FROM <表1> INNER JOIN <表2> ON <条件...>`；JOIN查询仍然可以使用`WHERE`条件和`ORDER BY`排序
+
+
+
+### 修改数据
+
+```
+INSERT 插入数据
+UPDATE 更新已有记录 
+DELETE 删除已有记录
+```
+
+##### 插入新记录 INSERT 
+
+INSERT INTO <表名>  (字段1， 字段2....) VALUES (值1, 值2)
+
+```
+INSERT INTO students (class_id, name, gender, score) VALUES (2, '大牛', 'M', 80); # 插入数据，更新至尾部
+SELECT * FROM students; # 打开students表
+```
+
+| 9    | 3    | 小王 | M    | 89   |
+| ---- | ---- | ---- | ---- | ---- |
+| 10   | 3    | 小丽 | F    | 88   |
+| 11   | 2    | 大牛 | M    | 80   |
+
+插入多条记录
+
+```
+INSERT INTO studnets (class_id, name, gender, score) VALUES
+  (1, '大宝', 'M', 87),
+  (2, '二宝', 'M', 81);
+SELECT * FROM students;
+```
+
+| 11   | 2    | 大牛 | M    | 80   |
+| ---- | ---- | ---- | ---- | ---- |
+| 12   | 1    | 大宝 | M    | 87   |
+| 13   | 2    | 二宝 | M    | 81   |
+
+##### 更新已有记录  UPDATE
+
+更新id=1的记录
+
+```
+UPDATE students SET name='大牛', score=66 WHERE id=1;
+SELECT * FROM studnets;
+```
+
+| id   | class_id | name | gender | score |
+| :--- | :------- | :--- | :----- | :---- |
+| 1    | 1        | 大牛 | M      | 66    |
+| 2    | 1        | 小红 | F      | 95    |
+
+更新id=5,6,7的记录
+
+```
+UPDATE students SET name='小牛', score=77 WHERE id>=5 AND id<=7;
+SELECT * FROM students;
+```
+
+| 4    | 1    | 小米 | F    | 73   |
+| ---- | ---- | ---- | ---- | ---- |
+| 5    | 2    | 小牛 | F    | 77   |
+| 6    | 2    | 小牛 | M    | 77   |
+| 7    | 2    | 小牛 | M    | 77   |
+
+更新score<80的记录
+
+```
+UPDATE students SET score=score+10 WHERE score<80;
+SELECT * FROM students;
+```
+
+| id   | class_id | name | gender | score |
+| :--- | :------- | :--- | :----- | :---- |
+| 1    | 1        | 大牛 | M      | 86    |
+| 2    | 1        | 小红 | F      | 95    |
+| 3    | 1        | 小军 | M      | 88    |
+| 4    | 1        | 小米 | F      | 83    |
+
+如果WHERE条件没有匹配到任何记录，UPDATE语句不会报错，也不会更新
+
+```
+UPDATE students SET score=100 WHERE id=999; # 更新id=999的记录
+SELECT *FROM students;
+```
+
+[^]: UPDATE语句可以在没有WHERE条件下更新 UPDATE studnets SET score=60；将更新全表
+
+在使用MySQL这类关系数据库时，UPDATE语句会返回更新行数及WHERE条件匹配的行数
+
+如更新id=1的记录
+
+```
+mysql> UPDATE students SET name='大宝' WHERE id=1;
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+```
+
+ MySQL会返回1，从打印结果Rows matched: 1 Changed: 1看到
+
+当更新id=999的记录
+
+```
+mysql> UPDATE students SET name='大宝' WHERE id=999；
+Query OK, 0 rows affected (0.00 sec)
+Rows matched: 0 Changed: 0 Warnings: 0
+```
+
+MySQL会返回`0`，可以从打印的结果`Rows matched: 0 Changed: 0`看到
+
+##### DELETE 删除已有记录
+
+[^]: 基本语法： DELETE FROM <表名> WHERE....
+
+删除id=1的记录
+
+```
+DELETE FROM studnets WHERE id=1;
+SELECT * FROM studnets;
+```
+
+| id   | class_id | name | gender | score |
+| :--- | :------- | :--- | :----- | :---- |
+| 2    | 1        | 小红 | F      | 95    |
+| 3    | 1        | 小军 | M      | 88    |
+
+删除id=5,6,7的记录
+
+```
+DELETE FROM studnets WHERE id>=5 AND id<=7;
+SELECT * FROM students; # 查看
+```
+
+| 4    | 1    | 小米 | F    | 73   |
+| ---- | ---- | ---- | ---- | ---- |
+| 8    | 3    | 小新 | F    | 91   |
+
+如WHERE条件没有匹配到任何记录，DELETE语句不会报错，也不会删除
+
+```
+DELET FROM students WHERE id=999; # 删除id=999的记录
+SELECT * FROM studnets;
+```
+
+[^]: 特别小心的是，和`UPDATE`类似，不带`WHERE`条件的`DELETE`语句会删除整个表的数据：DELETE FROM students;这时，整个表的所有记录都会被删除
+
+使用MySQL删除，会返回删除的行数以及WHERE条件匹配的行数
+
+```
+mysql> DELETE FROM students WHERE id=1; # 删除id=1
+Query OK, 1 row affected (0.01 sec)
+
+mysql> DELETE FROM students WHERE id=999; # 删除id=999
+Query OK, 0 rows affected (0.01 sec)
+```
+
