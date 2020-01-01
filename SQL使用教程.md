@@ -1,3 +1,9 @@
+
+
+
+
+
+
 ### 关系模型
 
 ##### 主键
@@ -623,4 +629,256 @@ Query OK, 1 row affected (0.01 sec)
 mysql> DELETE FROM students WHERE id=999; # 删除id=999
 Query OK, 0 rows affected (0.01 sec)
 ```
+
+### MySQL
+
+命令提示符，mysql -uroot -p密码 连接mysql server ，输入exit断开连接并返回命令提示符
+
+[^]: 注意`EXIT`仅仅断开了客户端和服务器的连接，MySQL服务器仍然继续运行
+
+默认端口3306，地址127.0.0.1:3306
+
+##### 管理MySQL
+
+###### 数据库
+
+列出所有数据库
+
+```
+SHOW DATABASES;
+```
+
+创建新的数据库
+
+```
+CREATE DATABASE <库名>;
+```
+
+删除数据库
+
+```
+DROP DATABASE <库名>;
+```
+
+切换为当前数据库
+
+```
+USE <库名>;
+```
+
+###### 表
+
+列出当前数据库的所有表
+
+```
+SHOW TABLES;
+```
+
+查看一个表的结构
+
+```
+DESC <表名>；
+```
+
+查看创建表的SQL语句
+
+```
+SHOW CREATE TABLE <表名>；
+```
+
+创建表
+
+```
+CREATE TABLE <表名>；
+```
+
+删除表
+
+```
+DROP TABLE  <表名>；
+```
+
+修改表，新增birth列
+
+```
+ALTER TABLE students ADD COLUMN birth VARCHAR(10) NOT NILL;
+```
+
+修改列名如birth改为birthday，类型改为VARCHAR(20)
+
+```
+ALTER TABLE students CHANGE COLUMN birth birthday VARCHAR(20) NOT NULL;
+```
+
+删除列
+
+```
+ALTER TABLE students DROP COLUMN birthday;
+```
+
+##### 实用SQL语句
+
+插入或替换(插入新记录)
+
+```
+REPLACE INTO students (id, class_id, name, gender, score) VALUES (1, 1, '小明', 'F', 99);
+```
+
+[^]: 如id=1 记录不存在则插入新记录，否则先删除当前记录并插入新记录
+
+插入或更新
+
+```
+INSERT INTO students （id, class_id, name, gender, score) VALUES (1, 1, '小明', 'F', 99) ON DUPLICATE KEY UPDATE name='小明', gender='F', score=99;
+```
+
+[^ ]: 如id=1记录不存在，INSERT语句将插入新记录，否则，将更新，字段由UPDATE指定
+
+插入或忽略
+
+```
+INSERT IGNORE INTO students (id, class_id, name, gender, score) VALUES (1, 1, '小明', 'F', 99);
+```
+
+[^ ]: 如id=1记录不存在，则插入新记录，否则不执行任何操作
+
+快照
+
+```
+	对class_id=1的记录进行快照，并储存为新表students_of_class1
+CREATE TABLE studnets_of_class1 SELECT * FROM students WHERE class_id=1;
+```
+
+[^ ]: 新创建的表结构和SELECT 使用的表结构完全一致
+
+写入查询结果集
+
+创建一个统计成绩的表students，记录各班的平均成绩
+
+```
+CREATE TABLE statistics(
+	id BIGINT NOT UNLL AUTO_INCREMENT, 自增整数类型
+	class_id BIGINT NOT UNLL,  输入格
+	average DOUBLE NOT UNLL, 输入格
+	PRIMARY KEY (id) 主键为id
+);
+```
+
+写入各班的平均成绩
+
+```
+INSERT INTO statistics (class_id, average) SELECT class_id, AVG(score) FROM students GROUP BY class_id;
+```
+
+确保INSERT语句的列和SELECT语句的列能一一对应，就可以在statistics表中直接保存查询结果
+
+```
+> SELECT * FROM statistics;
++----+----------+--------------+
+| id | class_id | average      |
++----+----------+--------------+
+|  1 |        1 |         86.5 |
+|  2 |        2 | 73.666666666 |
+|  3 |        3 | 88.333333333 |
++----+----------+--------------+
+3 rows in set (0.00 sec)
+```
+
+强制使用指定索引
+
+```
+SELECT * FROM students FORCE INDEX (idx_class_id) WHERE class_id=1 ORDER BY id DESC;
+```
+
+##### 事务
+
+[^ ]:可见，数据库事务具有ACID这4个特性：
+[^]:A：Atomic，原子性，将所有SQL作为原子工作单元执行，要么全部执行，要么全部不执行；
+[^]:C：Consistent，一致性，事务完成后，所有数据的状态都是一致的，即A账户只要减去了100，B账户则必定加上了100；
+[^]:I：Isolation，隔离性，如果有多个事务并发执行，每个事务作出的修改必须与其他事务隔离；
+[^]:D：Duration，持久性，即事务完成后，对数据库数据的修改被持久化存储
+
+显式事务
+
+```
+BEGIN; # 开启一个事务
+UPDATE accouts SET balance = balance - 100 WHERE id=1; id=1的账号减100
+UPDATE accouts SET balance = balance + 100 HWERE id=2; id=2的账号加100
+COMMIT; # 指提交事务，若失败，整个事务也会失败
+```
+
+如主动让事务失败，用ROLLBACK回滚事务
+
+```
+BEGIN; 
+UPDATE accounts SET balance = balance - 100 WHERE id=1;
+UPDATE accounts SET balance =balance + 100 WHERE id=2;
+ROLLBACK; # 主动让事务失败
+```
+
+隔离级别
+
+SQL标准定义了4种隔离级别，分别对应可能出现的数据不一致的情况：
+
+| Isolation Level  | 脏读（Dirty Read） | 不可重复读（Non Repeatable Read） | 幻读（Phantom Read） |
+| :--------------- | :----------------- | :-------------------------------- | :------------------- |
+| Read Uncommitted | Yes                | Yes                               | Yes                  |
+| Read Committed   | -                  | Yes                               | Yes                  |
+| Repeatable Read  | -                  | -                                 | Yes                  |
+| Serializable     | -                  | -                                 | -                    |
+
+###### Read Uncommitted 
+
+[^ ]: Read Uncommitted是隔离级别最低的一种事务级别。在这种隔离级别下，一个事务会读到另一个事务更新后但未提交的数据，如果另一个事务回滚，那么当前事务读到的数据就是脏数据，这就是脏读（Dirty Read）
+
+| 时刻 | 事务A                                                        | 事务B                                             |
+| :--- | :----------------------------------------------------------- | :------------------------------------------------ |
+| 1    | SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED; 设置隔离级别 | SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED; |
+| 2    | BEGIN; 开启事务                                              | BEGIN;                                            |
+| 3    | UPDATE students SET name = 'Bob' WHERE id = 1; 修改id=1的数据 |                                                   |
+| 4    |                                                              | SELECT * FROM students WHERE id = 1;查询数据      |
+| 5    | ROLLBACK; 回滚数据                                           |                                                   |
+| 6    |                                                              | SELECT * FROM students WHERE id = 1;              |
+| 7    |                                                              | COMMIT; 提交事务                                  |
+
+[^ ]:  当事务A执行完第3步时，它更新了`id=1`的记录，但并未提交，而事务B在第4步读取到的数据就是未提交的数据。随后，事务A在第5步进行了回滚，事务B再次读取`id=1`的记录，发现和上一次读取到的数据不一致，这就是脏读。可见，在Read Uncommitted隔离级别下，一个事务可能读取到另一个事务更新但未提交的数据，这个数据有可能是脏数据
+
+###### Read Committed 
+
+[^ ]:在Read Committed隔离级别下，一个事务可能会遇到不可重复读（Non Repeatable Read）的问题.不可重复读是指，在一个事务内，多次读同一数据，在这个事务还没有结束时，如果另一个事务恰好修改了这个数据，那么，在第一个事务中，两次读取的数据就可能不一致
+
+| 时刻 | 事务A                                           | 事务B                                           |
+| :--- | :---------------------------------------------- | :---------------------------------------------- |
+| 1    | SET TRANSACTION ISOLATION LEVEL READ COMMITTED; | SET TRANSACTION ISOLATION LEVEL READ COMMITTED; |
+| 2    | BEGIN;                                          | BEGIN;                                          |
+| 3    |                                                 | SELECT * FROM students WHERE id = 1;            |
+| 4    | UPDATE students SET name = 'Bob' WHERE id = 1;  |                                                 |
+| 5    | COMMIT;                                         |                                                 |
+| 6    |                                                 | SELECT * FROM students WHERE id = 1;            |
+| 7    |                                                 | COMMIT;                                         |
+
+[^ ]:当事务B第一次执行第3步的查询时，得到的结果是`Alice`，随后，由于事务A在第4步更新了这条记录并提交，所以，事务B在第6步再次执行同样的查询时，得到的结果就变成了`Bob`，因此，在Read Committed隔离级别下，事务不可重复读同一条记录，因为很可能读到的结果不一致
+
+###### Repeatable Read
+
+[^ ]:在Repeatable Read隔离级别下，一个事务可能会遇到幻读（Phantom Read）的问题。幻读是指，在一个事务中，第一次查询某条记录，发现没有，但是，当试图更新这条不存在的记录时，竟然能成功，并且，再次读取同一条记录，它就神奇地出现了
+
+| 时刻 | 事务A                                               | 事务B                                             |
+| :--- | :-------------------------------------------------- | :------------------------------------------------ |
+| 1    | SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;    | SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;  |
+| 2    | BEGIN;                                              | BEGIN;                                            |
+| 3    |                                                     | SELECT * FROM students WHERE id = 99;             |
+| 4    | INSERT INTO students (id, name) VALUES (99, 'Bob'); |                                                   |
+| 5    | COMMIT;                                             |                                                   |
+| 6    |                                                     | SELECT * FROM students WHERE id = 99;             |
+| 7    |                                                     | UPDATE students SET name = 'Alice' WHERE id = 99; |
+| 8    |                                                     | SELECT * FROM students WHERE id = 99;             |
+| 9    |                                                     | COMMIT;                                           |
+
+[^ ]:事务B在第3步第一次读取`id=99`的记录时，读到的记录为空，说明不存在`id=99`的记录。随后，事务A在第4步插入了一条`id=99`的记录并提交。事务B在第6步再次读取`id=99`的记录时，读到的记录仍然为空，但是，事务B在第7步试图更新这条不存在的记录时，竟然成功了，并且，事务B在第8步再次读取`id=99`的记录时，记录出现了.可见，幻读就是没有读到的记录，以为不存在，但其实是可以更新成功的，并且，更新成功后，再次读取，就出现了
+
+###### Serializable
+
+[^ ]:Serializable是最严格的隔离级别。在Serializable隔离级别下，所有事务按照次序依次执行，因此，脏读、不可重复读、幻读都不会出现,但效率大大下降
+[^ ]:默认隔离级别，使用InnoDB 级别为Repeatable Read
 
