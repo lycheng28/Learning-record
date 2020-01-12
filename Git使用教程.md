@@ -22,6 +22,12 @@ git config --global user.email 'xxx@xxx'
 cd xxx 
 ```
 
+返回上一层目录
+
+```
+cd ..
+```
+
 显示当前目录
 
 ```
