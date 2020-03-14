@@ -634,6 +634,27 @@ Query OK, 0 rows affected (0.01 sec)
 
 ##### 管理MySQL
 
+###### 用户
+
+查看用户
+
+```
+SELECT USER, HOST FROM MYSQL.USER; #mysql.user 表查询
+SELECT CURRENT_USER; # 函数查询
+```
+
+添加用户
+
+```
+CREATE USER '用户名'@‘localhost’ # localhsot 仅本主机登录
+```
+
+删除用户
+
+```
+DROP USER '用户名'@‘localhost’
+```
+
 ###### 数据库
 
 列出所有数据库
